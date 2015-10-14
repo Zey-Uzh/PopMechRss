@@ -1,11 +1,15 @@
 package ru.zeyuzh.testrssreader;
 
+import android.content.Intent;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.AdapterView;
 import android.widget.ListView;
 import android.widget.TextView;
 
@@ -141,7 +145,7 @@ public class MainActivity extends ActionBarActivity {
 
         @Override
         protected void onPostExecute(Void aVoid) {
-            Log.d("lg", "End of AsincTask");
+            Log.d("lg", "End of AsyncTask");
             setList();
         }
     }
@@ -151,6 +155,15 @@ public class MainActivity extends ActionBarActivity {
         tvDescription.setText(rssFeed.getDescription());
         RSSBaseAdapter adapter = new RSSBaseAdapter(this,rssFeed.getEntries());
         lvMain.setAdapter(adapter);
+        lvMain.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                Log.d("lg", "Clicked element #"+position + " need start browser on link "+ rssFeed.getEntries().get(position).getLink());
+                Uri address = Uri.parse(rssFeed.getEntries().get(position).getLink());
+                Intent openlink = new Intent(Intent.ACTION_VIEW, address);
+                startActivity(openlink);
+            }
+        });
     }
 
     @Override
