@@ -1,6 +1,7 @@
 <resources>
-    <string name="app_name">TestRSSreader</string>
+    <string name="app_name">PopMechRSS</string>
 
-    <string name="hello_world">Hello world!</string>
-    <string name="action_settings">Settings</string>
+    <string name="action_settings">Настройки</string>
+    <string name="description_label">Описание</string>
+    <string name="title_label">Заголовок</string>
 </resources>

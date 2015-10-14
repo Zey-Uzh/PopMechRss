@@ -6,6 +6,8 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.ListView;
+import android.widget.TextView;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -28,12 +30,20 @@ import javax.xml.parsers.ParserConfigurationException;
 public class MainActivity extends ActionBarActivity {
 
     final String feedUrl ="http://www.popmech.ru/out/public-all.xml";
-    public static RSSFeed rssFeed;
+    RSSFeed rssFeed;
+    ListView lvMain;
+    TextView tvTitle;
+    TextView tvDescription;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        lvMain = (ListView) findViewById(R.id.listView);
+        tvTitle = (TextView) findViewById(R.id.tvTitle);
+        tvDescription = (TextView) findViewById(R.id.tvDescription);
+
         DownloadRSS downloaded = new DownloadRSS(feedUrl);
         downloaded.execute();
 
@@ -70,28 +80,23 @@ public class MainActivity extends ActionBarActivity {
                 Element root = dom.getDocumentElement();
 
                 NodeList topItems = root.getElementsByTagName("channel");
-                Log.d("lg", "topItems.getLength() = " + topItems.getLength());
                 Node topItem = topItems.item(0);
                 NodeList allItems = topItem.getChildNodes();
-                for (int ii = 0; ii < allItems.getLength(); ii++) {
-                    //Log.d("lg", ii + " of allItems = " + allItems.item(ii).getNodeName());
-                    switch (allItems.item(ii).getNodeName()) {
+                for (int i = 0; i < allItems.getLength(); i++) {
+                    //Log.d("lg", i + " of allItems = " + allItems.item(i).getNodeName());
+                    switch (allItems.item(i).getNodeName()) {
                         case "title":
-                            Log.d("lg", "it's title !!! " + allItems.item(ii).getFirstChild().getNodeValue());
-                            rssFeed.setTitle(allItems.item(ii).getFirstChild().getNodeValue());
+                            rssFeed.setTitle(allItems.item(i).getFirstChild().getNodeValue());
                             break;
                         case "description":
-                            Log.d("lg", "it's description !!! " + allItems.item(ii).getFirstChild().getNodeValue());
-                            rssFeed.setDescription(allItems.item(ii).getFirstChild().getNodeValue());
+                            rssFeed.setDescription(allItems.item(i).getFirstChild().getNodeValue());
                             break;
                         case "link":
-                            Log.d("lg", "it's link !!! " + allItems.item(ii).getFirstChild().getNodeValue());
-                            rssFeed.setLink(allItems.item(ii).getFirstChild().getNodeValue());
+                            rssFeed.setLink(allItems.item(i).getFirstChild().getNodeValue());
                             break;
                         case "item":
-                            Log.d("lg", "it's item !!! " + allItems.item(ii).getFirstChild().getNodeValue());
                             RSSMessage message = new RSSMessage();
-                            Node item = allItems.item(ii);
+                            Node item = allItems.item(i);
                             NodeList properties = item.getChildNodes();
                             for (int j = 0; j < properties.getLength(); j++) {
                                 Node property = properties.item(j);
@@ -103,19 +108,20 @@ public class MainActivity extends ActionBarActivity {
                                 } else if (name.equals("description")) {
                                     message.setDescription(property.getFirstChild().getNodeValue());
                                 } else if (name.equals("pubDate")) {
-                                    message.setPubDate(property.getFirstChild().getNodeValue());
+                                    message.setPubDate(property.getFirstChild().getNodeValue().substring(5,22));
                                 } else if (name.equals("guid")) {
                                     message.setGuid(property.getFirstChild().getNodeValue());
                                 }
                             }
                             //Adding message to feed
                             rssFeed.addEntries(message);
-                            Log.d("lg", "message = " + message.toString());
+                            //Log.d("lg", "message = " + message.toString());
                             break;
                     }
                 }
-                Log.d("lg", "feed = " + MainActivity.rssFeed.toString());
                 is.close();
+                Log.d("lg", "Success parsing");
+                Log.d("lg", "Feed elements = " + rssFeed.getEntries().size() + " header of feed: " + rssFeed.toString());
 
             } catch (IOException e) {
                 Log.d("lg", "Fail");
@@ -133,28 +139,32 @@ public class MainActivity extends ActionBarActivity {
             return null;
         }
 
+        @Override
+        protected void onPostExecute(Void aVoid) {
+            Log.d("lg", "End of AsincTask");
+            setList();
+        }
+    }
 
+    protected void setList(){
+        tvTitle.setText(rssFeed.getTitle());
+        tvDescription.setText(rssFeed.getDescription());
+        RSSBaseAdapter adapter = new RSSBaseAdapter(this,rssFeed.getEntries());
+        lvMain.setAdapter(adapter);
     }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_main, menu);
         return true;
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
-
-        //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
             return true;
         }
-
         return super.onOptionsItemSelected(item);
     }
 }

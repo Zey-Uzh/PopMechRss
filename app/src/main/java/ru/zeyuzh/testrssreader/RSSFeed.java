@@ -9,13 +9,6 @@ public class RSSFeed {
     private String link = "";
 
     private List<RSSMessage> entries = new ArrayList<RSSMessage>();
-/*
-    public RSSFeed(String title, String description, String link) {
-        this.title = title;
-        this.description = description;
-        this.link = link;
-    }
-*/
 
     public void addEntries(RSSMessage message) {
         entries.add(message);
