@@ -4,4 +4,9 @@
     <string name="action_settings">Настройки</string>
     <string name="description_label">Описание</string>
     <string name="title_label">Заголовок</string>
+
+    <string name="insert">Insert</string>
+    <string name="update">Update</string>
+    <string name="delete">Delete</string>
+    <string name="error">Error</string>
 </resources>

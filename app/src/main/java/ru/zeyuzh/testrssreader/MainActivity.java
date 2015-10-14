@@ -1,6 +1,8 @@
 package ru.zeyuzh.testrssreader;
 
+import android.content.ContentValues;
 import android.content.Intent;
+import android.database.Cursor;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.support.v7.app.ActionBarActivity;
@@ -33,11 +35,13 @@ import javax.xml.parsers.ParserConfigurationException;
 
 public class MainActivity extends ActionBarActivity {
 
-    final String feedUrl ="http://www.popmech.ru/out/public-all.xml";
+    final String feedUrl = "http://www.popmech.ru/out/public-all.xml";
+    final Uri RSS_URI = Uri.parse("content://ru.zeyuzh.providers.RSSfeed/rss");
     RSSFeed rssFeed;
     ListView lvMain;
     TextView tvTitle;
     TextView tvDescription;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -47,6 +51,9 @@ public class MainActivity extends ActionBarActivity {
         lvMain = (ListView) findViewById(R.id.listView);
         tvTitle = (TextView) findViewById(R.id.tvTitle);
         tvDescription = (TextView) findViewById(R.id.tvDescription);
+
+        Cursor cursor = getContentResolver().query(RSS_URI, null, null, null, null);
+        startManagingCursor(cursor);
 
         DownloadRSS downloaded = new DownloadRSS(feedUrl);
         downloaded.execute();
@@ -112,7 +119,7 @@ public class MainActivity extends ActionBarActivity {
                                 } else if (name.equals("description")) {
                                     message.setDescription(property.getFirstChild().getNodeValue());
                                 } else if (name.equals("pubDate")) {
-                                    message.setPubDate(property.getFirstChild().getNodeValue().substring(5,22));
+                                    message.setPubDate(property.getFirstChild().getNodeValue().substring(5, 22));
                                 } else if (name.equals("guid")) {
                                     message.setGuid(property.getFirstChild().getNodeValue());
                                 }
@@ -146,19 +153,46 @@ public class MainActivity extends ActionBarActivity {
         @Override
         protected void onPostExecute(Void aVoid) {
             Log.d("lg", "End of AsyncTask");
-            setList();
+            //setList();
+            getContentResolver().delete(RSS_URI, null, null); //delete all cache
+            ContentValues cv = new ContentValues();
+            for (int i = 0; i < 25; i++) {
+                cv.put(RSSContentProvider.COLUMN_NAME_TITLE, rssFeed.getEntries().get(i).getTitle());
+                cv.put(RSSContentProvider.COLUMN_NAME_DESCRIPTION, rssFeed.getEntries().get(i).getDescription());
+                cv.put(RSSContentProvider.COLUMN_NAME_LINK, rssFeed.getEntries().get(i).getLink());
+                cv.put(RSSContentProvider.COLUMN_NAME_PUBDATE, rssFeed.getEntries().get(i).getPubDate());
+                Uri newUri = getContentResolver().insert(RSS_URI, cv);
+                Log.d("lg", "insert, result Uri : " + newUri.toString());
+            }
+            setCacheList();
         }
     }
 
-    protected void setList(){
+    private void setCacheList() {
+
+        Cursor cursor = getContentResolver().query(RSS_URI, null, null, null, null);
+        Log.d("lg", "getColumnName(2) = " + cursor.getColumnName(2));
+        Log.d("lg", "toString() = " + cursor.toString());
+
+        int index = cursor.getColumnIndex(RSSContentProvider.COLUMN_NAME_PUBDATE);
+        int y = 0;
+        while (cursor.moveToNext()) {
+            Log.d("lg", "cursor.getString(" + y + ") = " + cursor.getString(index));
+            y++;
+        }
+        Log.d("lg", "Num of entries = " + cursor.getCount());
+        cursor.close();
+    }
+
+    protected void setList() {
         tvTitle.setText(rssFeed.getTitle());
         tvDescription.setText(rssFeed.getDescription());
-        RSSBaseAdapter adapter = new RSSBaseAdapter(this,rssFeed.getEntries());
+        RSSBaseAdapter adapter = new RSSBaseAdapter(this, rssFeed.getEntries());
         lvMain.setAdapter(adapter);
         lvMain.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                Log.d("lg", "Clicked element #"+position + " need start browser on link "+ rssFeed.getEntries().get(position).getLink());
+                Log.d("lg", "Clicked element " + position + ". Start browser on link " + rssFeed.getEntries().get(position).getLink());
                 Uri address = Uri.parse(rssFeed.getEntries().get(position).getLink());
                 Intent openlink = new Intent(Intent.ACTION_VIEW, address);
                 startActivity(openlink);
