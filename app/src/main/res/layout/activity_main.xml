@@ -30,10 +30,10 @@
 
     </LinearLayout>
 
-    <ListView
+    <android.support.v7.widget.RecyclerView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:id="@+id/listView"
+        android:id="@+id/recyclerView"
         android:layout_below="@+id/linearLayout"
         android:layout_alignParentRight="true"
         android:layout_alignParentEnd="true" />

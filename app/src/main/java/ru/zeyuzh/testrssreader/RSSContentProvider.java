@@ -22,6 +22,7 @@ public class RSSContentProvider extends ContentProvider {
     // Table
     static final String TABLE = "rss";
 
+
     // Columns
     static final String ID = "_id";
     static final String COLUMN_NAME_TITLE = "title";
@@ -29,8 +30,7 @@ public class RSSContentProvider extends ContentProvider {
     static final String COLUMN_NAME_LINK = "link";
     static final String COLUMN_NAME_PUBDATE = "pubDate";
 
-
-    // Script for craate table
+    // Script for create table
     static final String DB_CREATE = "create table " + TABLE + "("
             + ID + " integer primary key autoincrement, "
             + COLUMN_NAME_TITLE + " text, "
@@ -48,6 +48,7 @@ public class RSSContentProvider extends ContentProvider {
 
     // General Uri
     public static final Uri CONTENT_URI = Uri.parse("content://" + AUTHORITY + "/" + PATH);
+    public static final String CONTENT_URI_STRING = "content://" + AUTHORITY + "/" + PATH;
 
     // Data types
     // Set of lines
@@ -73,7 +74,6 @@ public class RSSContentProvider extends ContentProvider {
     SQLiteDatabase db;
 
     public boolean onCreate() {
-        Log.d("lg", "onCreate");
         dbHelper = new DBHelper(getContext());
         return true;
     }
@@ -85,7 +85,6 @@ public class RSSContentProvider extends ContentProvider {
         // checking Uri
         switch (uriMatcher.match(uri)) {
             case URI_RSS: // if general Uri
-                Log.d("lg", "URI_RSS");
                 // sorting
                 if (TextUtils.isEmpty(sortOrder)) {
                     sortOrder = COLUMN_NAME_TITLE + " ASC";
@@ -93,7 +92,6 @@ public class RSSContentProvider extends ContentProvider {
                 break;
             case URI_RSS_ID: // if Uri with ID
                 String id = uri.getLastPathSegment();
-                Log.d("lg", "URI_RSS_ID, " + id);
                 // Adding ID
                 if (TextUtils.isEmpty(selection)) {
                     selection = ID + " = " + id;
@@ -112,7 +110,7 @@ public class RSSContentProvider extends ContentProvider {
     }
 
     public Uri insert(Uri uri, ContentValues values) {
-        Log.d("lg", "insert, " + uri.toString());
+        //Log.d("lg", "insert, " + uri.toString());
         if (uriMatcher.match(uri) != URI_RSS)
             throw new IllegalArgumentException("Wrong URI: " + uri);
 
@@ -125,14 +123,12 @@ public class RSSContentProvider extends ContentProvider {
     }
 
     public int delete(Uri uri, String selection, String[] selectionArgs) {
-        Log.d("lg", "delete, " + uri.toString());
+        //Log.d("lg", "delete, " + uri.toString());
         switch (uriMatcher.match(uri)) {
             case URI_RSS:
-                Log.d("lg", "URI_RSS");
                 break;
             case URI_RSS_ID:
                 String id = uri.getLastPathSegment();
-                Log.d("lg", "URI_RSS_ID, " + id);
                 if (TextUtils.isEmpty(selection)) {
                     selection = ID + " = " + id;
                 } else {
@@ -150,14 +146,12 @@ public class RSSContentProvider extends ContentProvider {
 
     public int update(Uri uri, ContentValues values, String selection,
                       String[] selectionArgs) {
-        Log.d("lg", "update, " + uri.toString());
+        //Log.d("lg", "update, " + uri.toString());
         switch (uriMatcher.match(uri)) {
             case URI_RSS:
-                Log.d("lg", "URI_RSS");
                 break;
             case URI_RSS_ID:
                 String id = uri.getLastPathSegment();
-                Log.d("lg", "URI_RSS_ID, " + id);
                 if (TextUtils.isEmpty(selection)) {
                     selection = ID + " = " + id;
                 } else {
@@ -174,7 +168,7 @@ public class RSSContentProvider extends ContentProvider {
     }
 
     public String getType(Uri uri) {
-        Log.d("lg", "getType, " + uri.toString());
+        //Log.d("lg", "getType, " + uri.toString());
         switch (uriMatcher.match(uri)) {
             case URI_RSS:
                 return CONTENT_TYPE;
@@ -191,18 +185,8 @@ public class RSSContentProvider extends ContentProvider {
         }
 
         public void onCreate(SQLiteDatabase db) {
+            Log.d("lg", "rssdb not exist, create it");
             db.execSQL(DB_CREATE);
-            /*
-            //test fill the table 10 rows
-            ContentValues cv = new ContentValues();
-            for (int i = 1; i <= 10; i++) {
-                cv.put(COLUMN_NAME_TITLE, "title " + i);
-                cv.put(COLUMN_NAME_DESCRIPTION, "description " + i);
-                cv.put(COLUMN_NAME_LINK, "link " + i);
-                cv.put(COLUMN_NAME_PUBDATE, "pubDate " + i);
-                db.insert(TABLE, null, cv);
-            }
-            */
         }
 
         public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {

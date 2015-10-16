@@ -1,18 +1,16 @@
 package ru.zeyuzh.testrssreader;
 
 import android.content.ContentValues;
-import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
-import android.widget.AdapterView;
-import android.widget.ListView;
 import android.widget.TextView;
 
 import org.apache.http.HttpEntity;
@@ -35,12 +33,11 @@ import javax.xml.parsers.ParserConfigurationException;
 
 public class MainActivity extends ActionBarActivity {
 
-    final String feedUrl = "http://www.popmech.ru/out/public-all.xml";
-    final Uri RSS_URI = Uri.parse("content://ru.zeyuzh.providers.RSSfeed/rss");
+    final String FEED_ADDRESS = "http://www.popmech.ru/out/public-all.xml";
     RSSFeed rssFeed;
-    ListView lvMain;
     TextView tvTitle;
     TextView tvDescription;
+    RecyclerView rv;
 
 
     @Override
@@ -48,16 +45,37 @@ public class MainActivity extends ActionBarActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        lvMain = (ListView) findViewById(R.id.listView);
+        rv = (RecyclerView) findViewById(R.id.recyclerView);
         tvTitle = (TextView) findViewById(R.id.tvTitle);
         tvDescription = (TextView) findViewById(R.id.tvDescription);
 
-        Cursor cursor = getContentResolver().query(RSS_URI, null, null, null, null);
-        startManagingCursor(cursor);
 
-        DownloadRSS downloaded = new DownloadRSS(feedUrl);
+        LinearLayoutManager llm = new LinearLayoutManager(this);
+        rv.setLayoutManager(llm);
+
+        //feed
+        Cursor cursor = getContentResolver().query(RSSContentProvider.CONTENT_URI, null, null, null, null);
+        if (cursor.getCount() > 0) {
+            Log.d("lg", "Set cached data");
+            setDataInList();
+        }
+        cursor.close();
+
+        DownloadRSS downloaded = new DownloadRSS(FEED_ADDRESS);
         downloaded.execute();
 
+    }
+
+    private void setDataInList() {
+        Cursor cursor = getContentResolver().query(RSSContentProvider.CONTENT_URI, null, null, null, null);
+        RSSRecyclerViewAdapter rvAdapter = new RSSRecyclerViewAdapter(cursor);
+        if (rv.getAdapter() == null) {
+            Log.d("lg", "New adapter in setDataInList");
+            rv.setAdapter(rvAdapter);
+        } else {
+            Log.d("lg", "Swap adapter in setDataInList");
+            rv.swapAdapter(rvAdapter, true);
+        }
     }
 
     private class DownloadRSS extends AsyncTask<String, Void, Void> {
@@ -153,51 +171,35 @@ public class MainActivity extends ActionBarActivity {
         @Override
         protected void onPostExecute(Void aVoid) {
             Log.d("lg", "End of AsyncTask");
-            //setList();
-            getContentResolver().delete(RSS_URI, null, null); //delete all cache
-            ContentValues cv = new ContentValues();
-            for (int i = 0; i < 25; i++) {
-                cv.put(RSSContentProvider.COLUMN_NAME_TITLE, rssFeed.getEntries().get(i).getTitle());
-                cv.put(RSSContentProvider.COLUMN_NAME_DESCRIPTION, rssFeed.getEntries().get(i).getDescription());
-                cv.put(RSSContentProvider.COLUMN_NAME_LINK, rssFeed.getEntries().get(i).getLink());
-                cv.put(RSSContentProvider.COLUMN_NAME_PUBDATE, rssFeed.getEntries().get(i).getPubDate());
-                Uri newUri = getContentResolver().insert(RSS_URI, cv);
-                Log.d("lg", "insert, result Uri : " + newUri.toString());
+
+            Cursor cursor = getContentResolver().query(RSSContentProvider.CONTENT_URI, null, null, null, null);
+            startManagingCursor(cursor);
+            if (cursor.getCount() == 0) {
+                ContentValues cv = new ContentValues();
+                for (int i = 0; i < rssFeed.getEntries().size(); i++) {
+                    cv.put(RSSContentProvider.COLUMN_NAME_TITLE, rssFeed.getEntries().get(i).getTitle());
+                    cv.put(RSSContentProvider.COLUMN_NAME_DESCRIPTION, rssFeed.getEntries().get(i).getDescription());
+                    cv.put(RSSContentProvider.COLUMN_NAME_LINK, rssFeed.getEntries().get(i).getLink());
+                    cv.put(RSSContentProvider.COLUMN_NAME_PUBDATE, rssFeed.getEntries().get(i).getPubDate());
+                    Uri newUri = getContentResolver().insert(RSSContentProvider.CONTENT_URI, cv);
+                    Log.d("lg", "Insert in feed after download, result Uri : " + newUri.toString());
+                }
+            } else {
+                ContentValues cv = new ContentValues();
+                for (int i = 0; i < rssFeed.getEntries().size(); i++) {
+                    cv.put(RSSContentProvider.COLUMN_NAME_TITLE, rssFeed.getEntries().get(i).getTitle());
+                    cv.put(RSSContentProvider.COLUMN_NAME_DESCRIPTION, rssFeed.getEntries().get(i).getDescription());
+                    cv.put(RSSContentProvider.COLUMN_NAME_LINK, rssFeed.getEntries().get(i).getLink());
+                    cv.put(RSSContentProvider.COLUMN_NAME_PUBDATE, rssFeed.getEntries().get(i).getPubDate());
+                    Uri uriWithID = Uri.parse(RSSContentProvider.CONTENT_URI_STRING + "/" + (i + 1));
+                    int count = getContentResolver().update(uriWithID, cv, null, null);
+                    Log.d("lg", "Update in feed after download, result Uri : " + count);
+                }
             }
-            setCacheList();
+            cursor.close();
+            setDataInList();
+
         }
-    }
-
-    private void setCacheList() {
-
-        Cursor cursor = getContentResolver().query(RSS_URI, null, null, null, null);
-        Log.d("lg", "getColumnName(2) = " + cursor.getColumnName(2));
-        Log.d("lg", "toString() = " + cursor.toString());
-
-        int index = cursor.getColumnIndex(RSSContentProvider.COLUMN_NAME_PUBDATE);
-        int y = 0;
-        while (cursor.moveToNext()) {
-            Log.d("lg", "cursor.getString(" + y + ") = " + cursor.getString(index));
-            y++;
-        }
-        Log.d("lg", "Num of entries = " + cursor.getCount());
-        cursor.close();
-    }
-
-    protected void setList() {
-        tvTitle.setText(rssFeed.getTitle());
-        tvDescription.setText(rssFeed.getDescription());
-        RSSBaseAdapter adapter = new RSSBaseAdapter(this, rssFeed.getEntries());
-        lvMain.setAdapter(adapter);
-        lvMain.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                Log.d("lg", "Clicked element " + position + ". Start browser on link " + rssFeed.getEntries().get(position).getLink());
-                Uri address = Uri.parse(rssFeed.getEntries().get(position).getLink());
-                Intent openlink = new Intent(Intent.ACTION_VIEW, address);
-                startActivity(openlink);
-            }
-        });
     }
 
     @Override
