@@ -1,6 +1,8 @@
 package ru.zeyuzh.testrssreader;
 
 import android.content.ContentValues;
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.AsyncTask;
@@ -11,12 +13,19 @@ import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
+import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.params.BasicHttpParams;
+import org.apache.http.params.HttpConnectionParams;
+import org.apache.http.params.HttpParams;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -25,6 +34,7 @@ import org.xml.sax.SAXException;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.InetAddress;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -33,11 +43,18 @@ import javax.xml.parsers.ParserConfigurationException;
 
 public class MainActivity extends ActionBarActivity {
 
+    static final String APP_PREFERENCES = "settings";
+    static final String APP_TITLE = "title";
+    static final String APP_DESCRIPTION = "description";
+
+    private SharedPreferences mSettings;
+
     final String FEED_ADDRESS = "http://www.popmech.ru/out/public-all.xml";
     RSSFeed rssFeed;
     TextView tvTitle;
     TextView tvDescription;
     RecyclerView rv;
+    ProgressBar progressBar;
 
 
     @Override
@@ -45,13 +62,23 @@ public class MainActivity extends ActionBarActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        mSettings = getSharedPreferences(APP_PREFERENCES, Context.MODE_PRIVATE);
+
         rv = (RecyclerView) findViewById(R.id.recyclerView);
         tvTitle = (TextView) findViewById(R.id.tvTitle);
         tvDescription = (TextView) findViewById(R.id.tvDescription);
+        progressBar = (ProgressBar) findViewById(R.id.progressBar);
 
 
         LinearLayoutManager llm = new LinearLayoutManager(this);
         rv.setLayoutManager(llm);
+
+        //set title and description
+        if (mSettings.contains(APP_TITLE)) {
+            tvTitle.setText(mSettings.getString(APP_TITLE, getResources().getString(R.string.title_label)));
+            tvDescription.setText(mSettings.getString(APP_DESCRIPTION, getResources().getString(R.string.description_label)));
+
+        }
 
         //feed
         Cursor cursor = getContentResolver().query(RSSContentProvider.CONTENT_URI, null, null, null, null);
@@ -61,10 +88,13 @@ public class MainActivity extends ActionBarActivity {
         }
         cursor.close();
 
-        DownloadRSS downloaded = new DownloadRSS(FEED_ADDRESS);
-        downloaded.execute();
+
+            DownloadRSS downloaded = new DownloadRSS(FEED_ADDRESS);
+            downloaded.execute();
+
 
     }
+
 
     private void setDataInList() {
         Cursor cursor = getContentResolver().query(RSSContentProvider.CONTENT_URI, null, null, null, null);
@@ -86,6 +116,12 @@ public class MainActivity extends ActionBarActivity {
             this.url = url;
         }
 
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+            progressBar.setVisibility(View.VISIBLE);
+        }
+
         protected Void doInBackground(String... urls) {
 
             try {
@@ -94,6 +130,7 @@ public class MainActivity extends ActionBarActivity {
                 HttpGet httpGet = new HttpGet(url);
 
                 HttpResponse httpResponse = httpClient.execute(httpGet);
+                Log.d("lg", "httpResponse status code = " + httpResponse.getStatusLine().getStatusCode());
                 HttpEntity httpEntity = httpResponse.getEntity();
                 is = httpEntity.getContent();
                 Log.d("lg", "Success HTTP request");
@@ -152,25 +189,51 @@ public class MainActivity extends ActionBarActivity {
                 Log.d("lg", "Success parsing");
                 Log.d("lg", "Feed elements = " + rssFeed.getEntries().size() + " header of feed: " + rssFeed.toString());
 
-            } catch (IOException e) {
-                Log.d("lg", "Fail");
-                Log.e("lg", e.getMessage());
-                e.printStackTrace();
             } catch (ParserConfigurationException e) {
-                Log.d("lg", "Fail");
+                cancel(true);
+                Log.d("lg", "Fail, task is cancelled.");
                 Log.e("lg", e.getMessage());
                 e.printStackTrace();
             } catch (SAXException e) {
-                Log.d("lg", "Fail");
+                cancel(true);
+                Log.d("lg", "Fail, task is cancelled.");
+                Log.e("lg", e.getMessage());
+                e.printStackTrace();
+            } catch (ClientProtocolException e) {
+                cancel(true);
+                Log.d("lg", "Fail, task is cancelled.");
+                Log.e("lg", e.getMessage());
+                e.printStackTrace();
+            } catch (IOException e) {
+                cancel(true);
+                Log.d("lg", "Fail, task is cancelled.");
                 Log.e("lg", e.getMessage());
                 e.printStackTrace();
             }
             return null;
         }
 
+
+        @Override
+        protected void onCancelled() {
+            super.onCancelled();
+            progressBar.setVisibility(View.GONE);
+            Toast.makeText(getApplicationContext(),"Problem with inet",Toast.LENGTH_LONG).show();
+        }
+
         @Override
         protected void onPostExecute(Void aVoid) {
             Log.d("lg", "End of AsyncTask");
+            progressBar.setVisibility(View.GONE);
+
+            if (!mSettings.contains(APP_TITLE)) {
+                SharedPreferences.Editor editor = mSettings.edit();
+                editor.putString(APP_TITLE, rssFeed.getTitle());
+                editor.putString(APP_DESCRIPTION, rssFeed.getDescription());
+                editor.apply();
+                tvTitle.setText(rssFeed.getTitle());
+                tvDescription.setText(rssFeed.getDescription());
+            }
 
             Cursor cursor = getContentResolver().query(RSSContentProvider.CONTENT_URI, null, null, null, null);
             startManagingCursor(cursor);
@@ -198,7 +261,6 @@ public class MainActivity extends ActionBarActivity {
             }
             cursor.close();
             setDataInList();
-
         }
     }
 
