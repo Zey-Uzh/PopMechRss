@@ -1,21 +1,24 @@
 package ru.zeyuzh.testrssreader;
 
+import android.app.Activity;
+import android.content.Context;
+import android.content.Intent;
 import android.database.Cursor;
+import android.net.Uri;
 import android.support.v7.widget.RecyclerView;
-import android.text.util.Linkify;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
-import java.util.List;
-
 public class RSSRecyclerViewAdapter extends RecyclerView.Adapter<RSSRecyclerViewAdapter.RSSViewHolder> {
     Cursor cursor;
+    Context mContext;
 
     //constructor
-    public RSSRecyclerViewAdapter(Cursor cursor) {
+    public RSSRecyclerViewAdapter(Cursor cursor, Context mContext) {
         this.cursor = cursor;
+        this.mContext=mContext;
     }
 
     //preparing ViewHolder
@@ -44,6 +47,15 @@ public class RSSRecyclerViewAdapter extends RecyclerView.Adapter<RSSRecyclerView
         cursor.moveToPosition(i);
         viewHolder.tvElementTitle.setText(cursor.getString(cursor.getColumnIndex(RSSContentProvider.COLUMN_NAME_TITLE)));
         viewHolder.tvElementDescription.setText(cursor.getString(cursor.getColumnIndex(RSSContentProvider.COLUMN_NAME_DESCRIPTION)));
+        viewHolder.tvElementDescription.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String link = cursor.getString(cursor.getColumnIndex(RSSContentProvider.COLUMN_NAME_LINK));
+                Uri address = Uri.parse(link);
+                Intent openlink = new Intent(Intent.ACTION_VIEW, address);
+                mContext.startActivity(openlink);
+            }
+        });
         viewHolder.tvElementDate.setText(cursor.getString(cursor.getColumnIndex(RSSContentProvider.COLUMN_NAME_PUBDATE)));
     }
 

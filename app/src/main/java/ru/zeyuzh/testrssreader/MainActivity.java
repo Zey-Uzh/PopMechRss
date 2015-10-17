@@ -123,7 +123,7 @@ public class MainActivity extends Activity {
         if (positionInRV<0){positionInRV=0;}
 
         Cursor cursor = getContentResolver().query(RSSContentProvider.CONTENT_URI, null, null, null, null);
-        RSSRecyclerViewAdapter rvAdapter = new RSSRecyclerViewAdapter(cursor);
+        RSSRecyclerViewAdapter rvAdapter = new RSSRecyclerViewAdapter(cursor,this);
         if (rv.getAdapter() == null) {
             Log.d("lg", "New adapter in setDataInList");
             rv.setAdapter(rvAdapter);
