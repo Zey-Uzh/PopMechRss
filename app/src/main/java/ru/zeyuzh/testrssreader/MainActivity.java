@@ -1,60 +1,40 @@
 package ru.zeyuzh.testrssreader;
 
-import android.content.ContentValues;
+import android.app.Activity;
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.database.Cursor;
-import android.net.Uri;
-import android.os.AsyncTask;
-import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.view.View;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
-import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.params.BasicHttpParams;
-import org.apache.http.params.HttpConnectionParams;
-import org.apache.http.params.HttpParams;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
-import org.xml.sax.SAXException;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.InetAddress;
-
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-
-
-public class MainActivity extends ActionBarActivity {
+public class MainActivity extends Activity {
 
     static final String APP_PREFERENCES = "settings";
     static final String APP_TITLE = "title";
     static final String APP_DESCRIPTION = "description";
+    static final String STATUS_RECEIVE = "status";
 
     private SharedPreferences mSettings;
 
-    final String FEED_ADDRESS = "http://www.popmech.ru/out/public-all.xml";
+    public final static String BROADCAST_ACTION = "ru.zeyuzh.rsspopmechservicebackbroadcast";
+
     RSSFeed rssFeed;
     TextView tvTitle;
     TextView tvDescription;
     RecyclerView rv;
     ProgressBar progressBar;
+    BroadcastReceiver br;
+    IntentFilter intFilt;
 
 
     @Override
@@ -69,32 +49,67 @@ public class MainActivity extends ActionBarActivity {
         tvDescription = (TextView) findViewById(R.id.tvDescription);
         progressBar = (ProgressBar) findViewById(R.id.progressBar);
 
-
         LinearLayoutManager llm = new LinearLayoutManager(this);
         rv.setLayoutManager(llm);
 
-        //set title and description
-        if (mSettings.contains(APP_TITLE)) {
-            tvTitle.setText(mSettings.getString(APP_TITLE, getResources().getString(R.string.title_label)));
-            tvDescription.setText(mSettings.getString(APP_DESCRIPTION, getResources().getString(R.string.description_label)));
+        //BroadcastReceiver for work with RSSNetworkService
+        br = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                Log.d("lg", "Receive signal from BroadcastReceiver");
+                if (intent.getBooleanExtra(STATUS_RECEIVE, false)) {
+                    Log.d("lg", "Receive signal is success");
+                    if (!mSettings.contains(APP_TITLE)) {
+                        String resievedTitle = intent.getStringExtra(APP_TITLE);
+                        String resievedDescription = intent.getStringExtra(APP_DESCRIPTION);
 
-        }
+                        SharedPreferences.Editor editor = mSettings.edit();
+                        editor.putString(APP_TITLE, resievedTitle);
+                        editor.putString(APP_DESCRIPTION, resievedDescription);
+                        editor.apply();
 
-        //feed
+                        tvTitle.setText(resievedTitle);
+                        tvDescription.setText(resievedDescription);
+                    }
+                    setDataInList();
+                } else {
+                    Log.d("lg", "Receive signal is fail");
+                    Toast.makeText(getApplicationContext(),getString(R.string.no_connection_to_internet),Toast.LENGTH_LONG).show();
+                    progressBar.setVisibility(View.GONE);
+                }
+            }
+        };
+        // Create intent-filter for BroadcastReceiver
+        intFilt = new IntentFilter(BROADCAST_ACTION);
+
+        Log.d("lg", "Register Receiver in onCreate()");
+        registerReceiver(br, intFilt);
+
+        //Check cached data
+        //Feeds in DB
         Cursor cursor = getContentResolver().query(RSSContentProvider.CONTENT_URI, null, null, null, null);
         if (cursor.getCount() > 0) {
             Log.d("lg", "Set cached data");
             setDataInList();
         }
         cursor.close();
+        //Title and description in SharedPreference
+        if (mSettings.contains(APP_TITLE)) {
+            tvTitle.setText(mSettings.getString(APP_TITLE, getResources().getString(R.string.title_label)));
+            tvDescription.setText(mSettings.getString(APP_DESCRIPTION, getResources().getString(R.string.description_label)));
+        }
 
-
-            DownloadRSS downloaded = new DownloadRSS(FEED_ADDRESS);
-            downloaded.execute();
-
-
+        //start downloading and updating data
+        renewData();
     }
 
+    private void renewData(){
+        //Start service for download RSS data
+        Intent intent;
+        intent = new Intent(this, RSSNetworkService.class);
+        startService(intent);
+        progressBar.setVisibility(View.VISIBLE);
+    }
 
     private void setDataInList() {
         Cursor cursor = getContentResolver().query(RSSContentProvider.CONTENT_URI, null, null, null, null);
@@ -105,177 +120,15 @@ public class MainActivity extends ActionBarActivity {
         } else {
             Log.d("lg", "Swap adapter in setDataInList");
             rv.swapAdapter(rvAdapter, true);
-        }
-    }
-
-    private class DownloadRSS extends AsyncTask<String, Void, Void> {
-        String url;
-        InputStream is;
-
-        public DownloadRSS(String url) {
-            this.url = url;
-        }
-
-        @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
-            progressBar.setVisibility(View.VISIBLE);
-        }
-
-        protected Void doInBackground(String... urls) {
-
-            try {
-                DefaultHttpClient httpClient = new DefaultHttpClient();
-                Log.d("lg", "Try HTTP request = " + url);
-                HttpGet httpGet = new HttpGet(url);
-
-                HttpResponse httpResponse = httpClient.execute(httpGet);
-                Log.d("lg", "httpResponse status code = " + httpResponse.getStatusLine().getStatusCode());
-                HttpEntity httpEntity = httpResponse.getEntity();
-                is = httpEntity.getContent();
-                Log.d("lg", "Success HTTP request");
-                //Log.d("lg", "Input stream after GET request = " + Utils.convertStreamToString(is));
-
-                //Parsing XML
-                Log.d("lg", "Start DOM parser");
-                rssFeed = new RSSFeed();
-
-                DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-                DocumentBuilder builder = factory.newDocumentBuilder();
-                Document dom = builder.parse(is);
-                Element root = dom.getDocumentElement();
-
-                NodeList topItems = root.getElementsByTagName("channel");
-                Node topItem = topItems.item(0);
-                NodeList allItems = topItem.getChildNodes();
-                for (int i = 0; i < allItems.getLength(); i++) {
-                    //Log.d("lg", i + " of allItems = " + allItems.item(i).getNodeName());
-                    switch (allItems.item(i).getNodeName()) {
-                        case "title":
-                            rssFeed.setTitle(allItems.item(i).getFirstChild().getNodeValue());
-                            break;
-                        case "description":
-                            rssFeed.setDescription(allItems.item(i).getFirstChild().getNodeValue());
-                            break;
-                        case "link":
-                            rssFeed.setLink(allItems.item(i).getFirstChild().getNodeValue());
-                            break;
-                        case "item":
-                            RSSMessage message = new RSSMessage();
-                            Node item = allItems.item(i);
-                            NodeList properties = item.getChildNodes();
-                            for (int j = 0; j < properties.getLength(); j++) {
-                                Node property = properties.item(j);
-                                String name = property.getNodeName();
-                                if (name.equals("title")) {
-                                    message.setTitle(property.getFirstChild().getNodeValue());
-                                } else if (name.equals("link")) {
-                                    message.setLink(property.getFirstChild().getNodeValue());
-                                } else if (name.equals("description")) {
-                                    message.setDescription(property.getFirstChild().getNodeValue());
-                                } else if (name.equals("pubDate")) {
-                                    message.setPubDate(property.getFirstChild().getNodeValue().substring(5, 22));
-                                } else if (name.equals("guid")) {
-                                    message.setGuid(property.getFirstChild().getNodeValue());
-                                }
-                            }
-                            //Adding message to feed
-                            rssFeed.addEntries(message);
-                            //Log.d("lg", "message = " + message.toString());
-                            break;
-                    }
-                }
-                is.close();
-                Log.d("lg", "Success parsing");
-                Log.d("lg", "Feed elements = " + rssFeed.getEntries().size() + " header of feed: " + rssFeed.toString());
-
-            } catch (ParserConfigurationException e) {
-                cancel(true);
-                Log.d("lg", "Fail, task is cancelled.");
-                Log.e("lg", e.getMessage());
-                e.printStackTrace();
-            } catch (SAXException e) {
-                cancel(true);
-                Log.d("lg", "Fail, task is cancelled.");
-                Log.e("lg", e.getMessage());
-                e.printStackTrace();
-            } catch (ClientProtocolException e) {
-                cancel(true);
-                Log.d("lg", "Fail, task is cancelled.");
-                Log.e("lg", e.getMessage());
-                e.printStackTrace();
-            } catch (IOException e) {
-                cancel(true);
-                Log.d("lg", "Fail, task is cancelled.");
-                Log.e("lg", e.getMessage());
-                e.printStackTrace();
-            }
-            return null;
-        }
-
-
-        @Override
-        protected void onCancelled() {
-            super.onCancelled();
             progressBar.setVisibility(View.GONE);
-            Toast.makeText(getApplicationContext(),"Problem with inet",Toast.LENGTH_LONG).show();
-        }
-
-        @Override
-        protected void onPostExecute(Void aVoid) {
-            Log.d("lg", "End of AsyncTask");
-            progressBar.setVisibility(View.GONE);
-
-            if (!mSettings.contains(APP_TITLE)) {
-                SharedPreferences.Editor editor = mSettings.edit();
-                editor.putString(APP_TITLE, rssFeed.getTitle());
-                editor.putString(APP_DESCRIPTION, rssFeed.getDescription());
-                editor.apply();
-                tvTitle.setText(rssFeed.getTitle());
-                tvDescription.setText(rssFeed.getDescription());
-            }
-
-            Cursor cursor = getContentResolver().query(RSSContentProvider.CONTENT_URI, null, null, null, null);
-            startManagingCursor(cursor);
-            if (cursor.getCount() == 0) {
-                ContentValues cv = new ContentValues();
-                for (int i = 0; i < rssFeed.getEntries().size(); i++) {
-                    cv.put(RSSContentProvider.COLUMN_NAME_TITLE, rssFeed.getEntries().get(i).getTitle());
-                    cv.put(RSSContentProvider.COLUMN_NAME_DESCRIPTION, rssFeed.getEntries().get(i).getDescription());
-                    cv.put(RSSContentProvider.COLUMN_NAME_LINK, rssFeed.getEntries().get(i).getLink());
-                    cv.put(RSSContentProvider.COLUMN_NAME_PUBDATE, rssFeed.getEntries().get(i).getPubDate());
-                    Uri newUri = getContentResolver().insert(RSSContentProvider.CONTENT_URI, cv);
-                    Log.d("lg", "Insert in feed after download, result Uri : " + newUri.toString());
-                }
-            } else {
-                ContentValues cv = new ContentValues();
-                for (int i = 0; i < rssFeed.getEntries().size(); i++) {
-                    cv.put(RSSContentProvider.COLUMN_NAME_TITLE, rssFeed.getEntries().get(i).getTitle());
-                    cv.put(RSSContentProvider.COLUMN_NAME_DESCRIPTION, rssFeed.getEntries().get(i).getDescription());
-                    cv.put(RSSContentProvider.COLUMN_NAME_LINK, rssFeed.getEntries().get(i).getLink());
-                    cv.put(RSSContentProvider.COLUMN_NAME_PUBDATE, rssFeed.getEntries().get(i).getPubDate());
-                    Uri uriWithID = Uri.parse(RSSContentProvider.CONTENT_URI_STRING + "/" + (i + 1));
-                    int count = getContentResolver().update(uriWithID, cv, null, null);
-                    Log.d("lg", "Update in feed after download, result Uri : " + count);
-                }
-            }
-            cursor.close();
-            setDataInList();
         }
     }
 
     @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.menu_main, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        int id = item.getItemId();
-        if (id == R.id.action_settings) {
-            return true;
-        }
-        return super.onOptionsItemSelected(item);
+    protected void onDestroy() {
+        super.onDestroy();
+        Log.d("lg", "Unegister Receiver in onDestroy()");
+        //When low memory, OS can skip onPause() and onStop(). Need unredistering reciever.
+        unregisterReceiver(br);
     }
 }
