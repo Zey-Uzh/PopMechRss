@@ -64,6 +64,7 @@ public class RSSContentProvider extends ContentProvider {
 
     // Creating UriMatcher
     private static final UriMatcher uriMatcher;
+
     static {
         uriMatcher = new UriMatcher(UriMatcher.NO_MATCH);
         uriMatcher.addURI(AUTHORITY, PATH, URI_RSS);

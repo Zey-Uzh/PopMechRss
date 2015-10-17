@@ -9,4 +9,5 @@
     <string name="delete">Delete</string>
     <string name="error">Error</string>
     <string name="no_connection_to_internet">Нет подключения к сети Интернет.</string>
+    <string name="first_load_data">Первичная загрузка данных...</string>
 </resources>

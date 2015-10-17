@@ -8,6 +8,7 @@ import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.os.Bundle;
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
@@ -28,11 +29,10 @@ public class MainActivity extends Activity {
 
     public final static String BROADCAST_ACTION = "ru.zeyuzh.rsspopmechservicebackbroadcast";
 
-    RSSFeed rssFeed;
     TextView tvTitle;
     TextView tvDescription;
     RecyclerView rv;
-    ProgressBar progressBar;
+    SwipeRefreshLayout mSwipeRefreshLayout;
     BroadcastReceiver br;
     IntentFilter intFilt;
 
@@ -47,7 +47,14 @@ public class MainActivity extends Activity {
         rv = (RecyclerView) findViewById(R.id.recyclerView);
         tvTitle = (TextView) findViewById(R.id.tvTitle);
         tvDescription = (TextView) findViewById(R.id.tvDescription);
-        progressBar = (ProgressBar) findViewById(R.id.progressBar);
+
+        mSwipeRefreshLayout = (SwipeRefreshLayout) findViewById(R.id.swipeRefreshLayout);
+        mSwipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+                renewData();
+            }
+        });
 
         LinearLayoutManager llm = new LinearLayoutManager(this);
         rv.setLayoutManager(llm);
@@ -75,7 +82,7 @@ public class MainActivity extends Activity {
                 } else {
                     Log.d("lg", "Receive signal is fail");
                     Toast.makeText(getApplicationContext(),getString(R.string.no_connection_to_internet),Toast.LENGTH_LONG).show();
-                    progressBar.setVisibility(View.GONE);
+                    mSwipeRefreshLayout.setRefreshing(false);
                 }
             }
         };
@@ -108,7 +115,7 @@ public class MainActivity extends Activity {
         Intent intent;
         intent = new Intent(this, RSSNetworkService.class);
         startService(intent);
-        progressBar.setVisibility(View.VISIBLE);
+        //mSwipeRefreshLayout.setRefreshing(true);
     }
 
     private void setDataInList() {
@@ -121,7 +128,7 @@ public class MainActivity extends Activity {
             Log.d("lg", "Swap adapter in setDataInList");
             rv.swapAdapter(rvAdapter, true);
         }
-        progressBar.setVisibility(View.GONE);
+        mSwipeRefreshLayout.setRefreshing(false);
     }
 
     @Override

@@ -29,7 +29,6 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
 public class RSSNetworkService extends Service {
-    private DownloadRSSTask downloadRSSTask;
     private final String FEED_ADDRESS = "http://www.popmech.ru/out/public-all.xml";
 
     @Override
@@ -93,7 +92,7 @@ public class RSSNetworkService extends Service {
             stopSelf();
         }
 
-        private void taskfailed(){
+        private void taskfailed() {
             Intent intent = new Intent(MainActivity.BROADCAST_ACTION);
             intent.putExtra(MainActivity.STATUS_RECEIVE, false);
             sendBroadcast(intent);
@@ -172,9 +171,11 @@ public class RSSNetworkService extends Service {
 
         private void setDataInBD(RSSFeed rssFeed) {
             Cursor cursor = getContentResolver().query(RSSContentProvider.CONTENT_URI, null, null, null, null);
+            ContentValues cv = new ContentValues();
+            int countFeed = rssFeed.getEntries().size();
+
             if (cursor.getCount() == 0) {
-                ContentValues cv = new ContentValues();
-                for (int i = 0; i < rssFeed.getEntries().size(); i++) {
+                for (int i = 0; i < countFeed; i++) {
                     cv.put(RSSContentProvider.COLUMN_NAME_TITLE, rssFeed.getEntries().get(i).getTitle());
                     cv.put(RSSContentProvider.COLUMN_NAME_DESCRIPTION, rssFeed.getEntries().get(i).getDescription());
                     cv.put(RSSContentProvider.COLUMN_NAME_LINK, rssFeed.getEntries().get(i).getLink());
@@ -183,8 +184,7 @@ public class RSSNetworkService extends Service {
                     Log.d("lg", "Insert in feed after download, result Uri : " + newUri.toString());
                 }
             } else {
-                ContentValues cv = new ContentValues();
-                for (int i = 0; i < rssFeed.getEntries().size(); i++) {
+                for (int i = 0; i < countFeed; i++) {
                     cv.put(RSSContentProvider.COLUMN_NAME_TITLE, rssFeed.getEntries().get(i).getTitle());
                     cv.put(RSSContentProvider.COLUMN_NAME_DESCRIPTION, rssFeed.getEntries().get(i).getDescription());
                     cv.put(RSSContentProvider.COLUMN_NAME_LINK, rssFeed.getEntries().get(i).getLink());
@@ -194,6 +194,7 @@ public class RSSNetworkService extends Service {
                     Log.d("lg", "Update in feed after download, result Uri : " + count);
                 }
             }
+
             cursor.close();
         }
     }
