@@ -120,8 +120,8 @@ public class MainActivity extends Activity {
         } else {
             Log.d("lg", "Swap adapter in setDataInList");
             rv.swapAdapter(rvAdapter, true);
-            progressBar.setVisibility(View.GONE);
         }
+        progressBar.setVisibility(View.GONE);
     }
 
     @Override
