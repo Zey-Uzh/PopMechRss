@@ -139,7 +139,8 @@ public class RSSNetworkService extends Service {
                                         message.setLink(property.getFirstChild().getNodeValue());
                                         break;
                                     case "description":
-                                        message.setDescription(property.getFirstChild().getNodeValue());
+                                        String tmp = property.getFirstChild().getNodeValue();
+                                        message.setDescription(tmp.substring(tmp.indexOf("<br />") + 6));
                                         break;
                                     case "pubDate":
                                         message.setPubDate(property.getFirstChild().getNodeValue().substring(5, 22));

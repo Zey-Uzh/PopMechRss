@@ -2,6 +2,7 @@ package ru.zeyuzh.testrssreader;
 
 import android.database.Cursor;
 import android.support.v7.widget.RecyclerView;
+import android.text.util.Linkify;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -14,7 +15,7 @@ public class RSSRecyclerViewAdapter extends RecyclerView.Adapter<RSSRecyclerView
 
     //constructor
     public RSSRecyclerViewAdapter(Cursor cursor) {
-        this.cursor=cursor;
+        this.cursor = cursor;
     }
 
     //preparing ViewHolder
@@ -25,9 +26,9 @@ public class RSSRecyclerViewAdapter extends RecyclerView.Adapter<RSSRecyclerView
 
         RSSViewHolder(View itemView) {
             super(itemView);
-            tvElementTitle = (TextView)itemView.findViewById(R.id.tvElementTitle);
-            tvElementDescription = (TextView)itemView.findViewById(R.id.tvElementDescription);
-            tvElementDate = (TextView)itemView.findViewById(R.id.tvElementDate);
+            tvElementTitle = (TextView) itemView.findViewById(R.id.tvElementTitle);
+            tvElementDescription = (TextView) itemView.findViewById(R.id.tvElementDescription);
+            tvElementDate = (TextView) itemView.findViewById(R.id.tvElementDate);
         }
     }
 
