@@ -12,8 +12,6 @@ import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
-import android.view.View;
-import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -35,7 +33,6 @@ public class MainActivity extends Activity {
     SwipeRefreshLayout mSwipeRefreshLayout;
     BroadcastReceiver br;
     IntentFilter intFilt;
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -115,10 +112,16 @@ public class MainActivity extends Activity {
         Intent intent;
         intent = new Intent(this, RSSNetworkService.class);
         startService(intent);
-        //mSwipeRefreshLayout.setRefreshing(true);
     }
 
     private void setDataInList() {
+        int positionInRV = 0;
+
+        //save position
+        LinearLayoutManager manager = (LinearLayoutManager) rv.getLayoutManager();
+        positionInRV = manager.findFirstVisibleItemPosition();
+        if (positionInRV<0){positionInRV=0;}
+
         Cursor cursor = getContentResolver().query(RSSContentProvider.CONTENT_URI, null, null, null, null);
         RSSRecyclerViewAdapter rvAdapter = new RSSRecyclerViewAdapter(cursor);
         if (rv.getAdapter() == null) {
@@ -129,6 +132,9 @@ public class MainActivity extends Activity {
             rv.swapAdapter(rvAdapter, true);
         }
         mSwipeRefreshLayout.setRefreshing(false);
+
+        //restore position
+        rv.scrollToPosition(positionInRV);
     }
 
     @Override
