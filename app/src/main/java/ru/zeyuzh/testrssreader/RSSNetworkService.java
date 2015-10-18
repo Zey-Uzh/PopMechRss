@@ -183,7 +183,7 @@ public class RSSNetworkService extends Service {
                     cv.put(RSSContentProvider.COLUMN_NAME_LINK, rssFeed.getEntries().get(i).getLink());
                     cv.put(RSSContentProvider.COLUMN_NAME_PUBDATE, rssFeed.getEntries().get(i).getPubDate());
                     Uri newUri = getContentResolver().insert(RSSContentProvider.CONTENT_URI, cv);
-                    Log.d("lg", "Insert in feed after download, result Uri : " + newUri.toString());
+                    //Log.d("lg", "Insert in feed after download, result Uri : " + newUri.toString());
                 }
             } else {
                 for (int i = 0; i < countFeed; i++) {
@@ -193,7 +193,7 @@ public class RSSNetworkService extends Service {
                     cv.put(RSSContentProvider.COLUMN_NAME_PUBDATE, rssFeed.getEntries().get(i).getPubDate());
                     Uri uriWithID = Uri.parse(RSSContentProvider.CONTENT_URI_STRING + "/" + (i + 1));
                     int count = getContentResolver().update(uriWithID, cv, null, null);
-                    Log.d("lg", "Update in feed after download, result Uri : " + count);
+                    //Log.d("lg", "Update in feed after download, result Uri : " + count);
                 }
             }
 
