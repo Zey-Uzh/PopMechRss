@@ -28,11 +28,13 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
 public class RSSNetworkService extends Service {
-    private final String FEED_ADDRESS = "http://www.popmech.ru/out/public-all.xml";
+    //private final String feedAddress = "http://www.popmech.ru/out/public-all.xml";
+    private String feedAddress = "http://www.popmech.ru/out/public-all.xml";
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        DownloadRSSTask downloaded = new DownloadRSSTask(FEED_ADDRESS);
+        feedAddress = intent.getExtras().getString(MainActivity.SECTION_URL);
+        DownloadRSSTask downloaded = new DownloadRSSTask(feedAddress);
         new Thread(downloaded).start();
 
         return Service.START_FLAG_REDELIVERY;

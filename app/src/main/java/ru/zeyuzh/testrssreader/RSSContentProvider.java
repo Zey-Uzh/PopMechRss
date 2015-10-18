@@ -88,7 +88,7 @@ public class RSSContentProvider extends ContentProvider {
             case URI_RSS: // if general Uri
                 // sorting
                 if (TextUtils.isEmpty(sortOrder)) {
-                    sortOrder = COLUMN_NAME_TITLE + " ASC";
+                    sortOrder = ID + " ASC";
                 }
                 break;
             case URI_RSS_ID: // if Uri with ID

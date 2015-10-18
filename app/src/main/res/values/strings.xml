@@ -9,5 +9,22 @@
     <string name="delete">Delete</string>
     <string name="error">Error</string>
     <string name="no_connection_to_internet">Нет подключения к сети Интернет.</string>
-    <string name="first_load_data">Первичная загрузка данных...</string>
+    <string name="load_data">Загрузка данных…</string>
+
+    <string name="sections">Разделы новостей</string>
+    <string name="section_all">Все рублики</string>
+    <string name="section_science">Наука</string>
+    <string name="section_weapon">Оружие</string>
+    <string name="section_technologies">Технологии</string>
+    <string name="section_vehicles">Автомобили</string>
+    <string name="section_gadgets">Гаджеты</string>
+    <string name="section_lectures_popular">Популярный лекторий</string>
+    <string name="section_commercial">Реклама</string>
+    <string name="section_business_news">Бизнес-новости</string>
+    <string name="section_editorial">Редакция</string>
+    <string name="section_history">История</string>
+    <string name="section_made_in_russia">Сделано в России</string>
+    <string name="section_adrenalin">Адреналин</string>
+    <string name="section_diy">Сделай сам</string>
+    <string name="section_design">Дизайн</string>
 </resources>

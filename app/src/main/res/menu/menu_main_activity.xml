@@ -1,0 +1,62 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:context=".InitialScreen">
+    <item
+        android:id="@+id/sections"
+        android:orderInCategory="100"
+        android:title="@string/sections"
+        app:showAsAction="never">
+        <menu>
+            <group
+                android:id="@+id/initial_menu_group">
+                <item
+                    android:id="@+id/sub_menu_all"
+                    android:title="@string/section_all"
+                    />
+                <item
+                    android:id="@+id/sub_menu_science"
+                    android:title="@string/section_science" />
+                <item
+                    android:id="@+id/sub_menu_weapon"
+                    android:title="@string/section_weapon" />
+                <item
+                    android:id="@+id/sub_menu_technologies"
+                    android:title="@string/section_technologies" />
+                <item
+                    android:id="@+id/sub_menu_vehicles"
+                    android:title="@string/section_vehicles" />
+                <item
+                    android:id="@+id/sub_menu_gadgets"
+                    android:title="@string/section_gadgets" />
+                <item
+                    android:id="@+id/sub_menu_lectures_popular"
+                    android:title="@string/section_lectures_popular" />
+                <item
+                    android:id="@+id/sub_menu_commercial"
+                    android:title="@string/section_commercial" />
+                <item
+                    android:id="@+id/sub_menu_business_news"
+                    android:title="@string/section_business_news" />
+                <item
+                    android:id="@+id/sub_menu_editorial"
+                    android:title="@string/section_editorial" />
+                <item
+                    android:id="@+id/sub_menu_history"
+                    android:title="@string/section_history" />
+                <item
+                    android:id="@+id/sub_menu_made_in_russia"
+                    android:title="@string/section_made_in_russia" />
+                <item
+                    android:id="@+id/sub_menu_adrenalin"
+                    android:title="@string/section_adrenalin" />
+                <item
+                    android:id="@+id/sub_menu_diy"
+                    android:title="@string/section_diy" />
+                <item
+                    android:id="@+id/sub_menu_design"
+                    android:title="@string/section_design" />
+            </group>
+        </menu>
+    </item>
+</menu>

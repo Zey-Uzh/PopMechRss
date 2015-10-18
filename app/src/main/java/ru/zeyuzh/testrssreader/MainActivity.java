@@ -9,23 +9,27 @@ import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.os.Bundle;
 import android.support.v4.widget.SwipeRefreshLayout;
+import android.support.v7.app.ActionBarActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.widget.TextView;
 import android.widget.Toast;
 
 
-public class MainActivity extends Activity {
+public class MainActivity extends ActionBarActivity {
 
-    static final String APP_PREFERENCES = "settings";
-    static final String APP_TITLE = "title";
-    static final String APP_DESCRIPTION = "description";
-    static final String STATUS_RECEIVE = "status";
+    static final String APP_PREFERENCES = "settings" ;
+    static final String APP_TITLE = "title" ;
+    static final String APP_DESCRIPTION = "description" ;
+    static final String STATUS_RECEIVE = "status" ;
+
+    public static final String SECTION_URL = "url" ;
+    public final static String BROADCAST_ACTION = "ru.zeyuzh.rsspopmechservicebackbroadcast" ;
 
     private SharedPreferences mSettings;
-
-    public final static String BROADCAST_ACTION = "ru.zeyuzh.rsspopmechservicebackbroadcast";
 
     TextView tvTitle;
     TextView tvDescription;
@@ -63,9 +67,11 @@ public class MainActivity extends Activity {
                 Log.d("lg", "Receive signal from BroadcastReceiver");
                 if (intent.getBooleanExtra(STATUS_RECEIVE, false)) {
                     Log.d("lg", "Receive signal is success");
-                    if (!mSettings.contains(APP_TITLE)) {
                         String resievedTitle = intent.getStringExtra(APP_TITLE);
                         String resievedDescription = intent.getStringExtra(APP_DESCRIPTION);
+
+                        Log.d("lg", "resievedTitle = " + resievedTitle);
+                        Log.d("lg", "resievedDescription = " + resievedDescription);
 
                         SharedPreferences.Editor editor = mSettings.edit();
                         editor.putString(APP_TITLE, resievedTitle);
@@ -74,12 +80,12 @@ public class MainActivity extends Activity {
 
                         tvTitle.setText(resievedTitle);
                         tvDescription.setText(resievedDescription);
-                    }
                     setDataInList();
                 } else {
                     Log.d("lg", "Receive signal is fail");
-                    Toast.makeText(getApplicationContext(),getString(R.string.no_connection_to_internet),Toast.LENGTH_LONG).show();
+                    Toast.makeText(getApplicationContext(), getString(R.string.no_connection_to_internet), Toast.LENGTH_LONG).show();
                     mSwipeRefreshLayout.setRefreshing(false);
+                    tvDescription.setText(mSettings.getString(APP_DESCRIPTION, getResources().getString(R.string.description_label)));
                 }
             }
         };
@@ -107,11 +113,13 @@ public class MainActivity extends Activity {
         renewData();
     }
 
-    private void renewData(){
+    private void renewData() {
         //Start service for download RSS data
         Intent intent;
         intent = new Intent(this, RSSNetworkService.class);
+        intent.putExtra(SECTION_URL, mSettings.getString(SECTION_URL, RSSsections.all.getRSSsectionUrl()));
         startService(intent);
+        tvDescription.setText(R.string.load_data);
     }
 
     private void setDataInList() {
@@ -120,10 +128,12 @@ public class MainActivity extends Activity {
         //save position
         LinearLayoutManager manager = (LinearLayoutManager) rv.getLayoutManager();
         positionInRV = manager.findFirstVisibleItemPosition();
-        if (positionInRV<0){positionInRV=0;}
+        if (positionInRV < 0) {
+            positionInRV = 0;
+        }
 
         Cursor cursor = getContentResolver().query(RSSContentProvider.CONTENT_URI, null, null, null, null);
-        RSSRecyclerViewAdapter rvAdapter = new RSSRecyclerViewAdapter(cursor,this);
+        RSSRecyclerViewAdapter rvAdapter = new RSSRecyclerViewAdapter(cursor, this);
         if (rv.getAdapter() == null) {
             Log.d("lg", "New adapter in setDataInList");
             rv.setAdapter(rvAdapter);
@@ -143,5 +153,90 @@ public class MainActivity extends Activity {
         Log.d("lg", "Unegister Receiver in onDestroy()");
         //When low memory, OS can skip onPause() and onStop(). Need unredistering reciever.
         unregisterReceiver(br);
+    }
+
+    //Menu
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.menu_main_activity, menu);
+        return true;
+    }
+
+    private void setNewSection(String url) {
+        Log.d("lg", "Change section");
+        SharedPreferences.Editor editor = mSettings.edit();
+        editor.putString(SECTION_URL, url);
+        editor.apply();
+        renewData();
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+
+        int id = item.getItemId();
+        switch (id) {
+            case (R.id.sub_menu_all): {
+                setNewSection(RSSsections.all.getRSSsectionUrl());
+                return true;
+            }
+            case (R.id.sub_menu_science): {
+                setNewSection(RSSsections.science.getRSSsectionUrl());
+                return true;
+            }
+            case (R.id.sub_menu_weapon): {
+                setNewSection(RSSsections.weapon.getRSSsectionUrl());
+                return true;
+            }
+            case (R.id.sub_menu_technologies): {
+                setNewSection(RSSsections.technologies.getRSSsectionUrl());
+                return true;
+            }
+            case (R.id.sub_menu_vehicles): {
+                setNewSection(RSSsections.vehicles.getRSSsectionUrl());
+                return true;
+            }
+            case (R.id.sub_menu_gadgets): {
+                setNewSection(RSSsections.gadgets.getRSSsectionUrl());
+                return true;
+            }
+            case (R.id.sub_menu_lectures_popular): {
+                setNewSection(RSSsections.lectures_popular.getRSSsectionUrl());
+                return true;
+            }
+            case (R.id.sub_menu_commercial): {
+                setNewSection(RSSsections.commercial.getRSSsectionUrl());
+                return true;
+            }
+            case (R.id.sub_menu_business_news): {
+                setNewSection(RSSsections.business_news.getRSSsectionUrl());
+                return true;
+            }
+            case (R.id.sub_menu_editorial): {
+                setNewSection(RSSsections.editorial.getRSSsectionUrl());
+                return true;
+            }
+            case (R.id.sub_menu_history): {
+                setNewSection(RSSsections.history.getRSSsectionUrl());
+                return true;
+            }
+            case (R.id.sub_menu_made_in_russia): {
+                setNewSection(RSSsections.made_in_russia.getRSSsectionUrl());
+                return true;
+            }
+            case (R.id.sub_menu_adrenalin): {
+                setNewSection(RSSsections.adrenalin.getRSSsectionUrl());
+                return true;
+            }
+            case (R.id.sub_menu_diy): {
+                setNewSection(RSSsections.diy.getRSSsectionUrl());
+                return true;
+            }
+            case (R.id.sub_menu_design): {
+                setNewSection(RSSsections.design.getRSSsectionUrl());
+                return true;
+            }
+            default:
+                return super.onOptionsItemSelected(item);
+        }
     }
 }
