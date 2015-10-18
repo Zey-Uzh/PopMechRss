@@ -1,6 +1,5 @@
 package ru.zeyuzh.testrssreader;
 
-import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -24,6 +23,8 @@ public class MainActivity extends ActionBarActivity {
     static final String APP_PREFERENCES = "settings" ;
     static final String APP_TITLE = "title" ;
     static final String APP_DESCRIPTION = "description" ;
+    static final String APP_LAST_POSITION = "last_position" ;
+
     static final String STATUS_RECEIVE = "status" ;
 
     public static final String SECTION_URL = "url" ;
@@ -67,19 +68,19 @@ public class MainActivity extends ActionBarActivity {
                 Log.d("lg", "Receive signal from BroadcastReceiver");
                 if (intent.getBooleanExtra(STATUS_RECEIVE, false)) {
                     Log.d("lg", "Receive signal is success");
-                        String resievedTitle = intent.getStringExtra(APP_TITLE);
-                        String resievedDescription = intent.getStringExtra(APP_DESCRIPTION);
+                    String resievedTitle = intent.getStringExtra(APP_TITLE);
+                    String resievedDescription = intent.getStringExtra(APP_DESCRIPTION);
 
-                        Log.d("lg", "resievedTitle = " + resievedTitle);
-                        Log.d("lg", "resievedDescription = " + resievedDescription);
+                    Log.d("lg", "resievedTitle = " + resievedTitle);
+                    Log.d("lg", "resievedDescription = " + resievedDescription);
 
-                        SharedPreferences.Editor editor = mSettings.edit();
-                        editor.putString(APP_TITLE, resievedTitle);
-                        editor.putString(APP_DESCRIPTION, resievedDescription);
-                        editor.apply();
+                    SharedPreferences.Editor editor = mSettings.edit();
+                    editor.putString(APP_TITLE, resievedTitle);
+                    editor.putString(APP_DESCRIPTION, resievedDescription);
+                    editor.apply();
 
-                        tvTitle.setText(resievedTitle);
-                        tvDescription.setText(resievedDescription);
+                    tvTitle.setText(resievedTitle);
+                    tvDescription.setText(resievedDescription);
                     setDataInList();
                 } else {
                     Log.d("lg", "Receive signal is fail");
@@ -109,7 +110,11 @@ public class MainActivity extends ActionBarActivity {
             tvDescription.setText(mSettings.getString(APP_DESCRIPTION, getResources().getString(R.string.description_label)));
         }
 
-        //start downloading and updating data
+        //Restore last position
+        Log.d("lg", "Loaded position = " + mSettings.getInt(APP_LAST_POSITION, 0));
+        rv.scrollToPosition(mSettings.getInt(APP_LAST_POSITION, 0));
+
+        //Start downloading and updating data
         renewData();
     }
 
@@ -150,9 +155,26 @@ public class MainActivity extends ActionBarActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+
         Log.d("lg", "Unegister Receiver in onDestroy()");
         //When low memory, OS can skip onPause() and onStop(). Need unredistering reciever.
         unregisterReceiver(br);
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+
+        //Save position (need do it in onDestroy() but.. in there not working)
+        int positionInRV = 0;
+        LinearLayoutManager manager = (LinearLayoutManager) rv.getLayoutManager();
+        positionInRV = manager.findFirstVisibleItemPosition();
+
+        SharedPreferences.Editor editor = mSettings.edit();
+        editor.putInt(APP_LAST_POSITION, positionInRV);
+        editor.apply();
+
+        Log.d("lg", "Saved position = " + positionInRV);
     }
 
     //Menu
