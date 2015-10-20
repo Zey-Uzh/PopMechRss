@@ -23,7 +23,7 @@
             android:authorities="ru.zeyuzh.providers.RSSfeed"
             android:enabled="true" />
         <service
-            android:name=".RSSNetworkService" />
+            android:name=".RSSNetworkIntentService" />
     </application>
 
 </manifest>

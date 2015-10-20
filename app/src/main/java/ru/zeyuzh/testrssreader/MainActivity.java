@@ -20,15 +20,16 @@ import android.widget.Toast;
 
 public class MainActivity extends ActionBarActivity {
 
-    static final String APP_PREFERENCES = "settings" ;
-    static final String APP_TITLE = "title" ;
-    static final String APP_DESCRIPTION = "description" ;
-    static final String APP_LAST_POSITION = "last_position" ;
+    static final String APP_PREFERENCES = "settings";
+    static final String APP_TITLE = "title";
+    static final String APP_DESCRIPTION = "description";
+    static final String APP_LAST_POSITION = "last_position";
 
-    static final String STATUS_RECEIVE = "status" ;
+    static final String STATUS_RECEIVE = "status";
 
-    public static final String SECTION_URL = "url" ;
-    public final static String BROADCAST_ACTION = "ru.zeyuzh.rsspopmechservicebackbroadcast" ;
+    static final String SECTION_URL = "url";
+    static final String BROADCAST_ACTION = "ru.zeyuzh.rsspopmechservicebackbroadcast";
+    static final String BROADCAST_POSITION = "broadcast_position";
 
     private SharedPreferences mSettings;
 
@@ -54,14 +55,14 @@ public class MainActivity extends ActionBarActivity {
         mSwipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
             @Override
             public void onRefresh() {
-                renewData();
+                renewData(-1);
             }
         });
 
         LinearLayoutManager llm = new LinearLayoutManager(this);
         rv.setLayoutManager(llm);
 
-        //BroadcastReceiver for work with RSSNetworkService
+        //BroadcastReceiver for work with RSSNetworkIntentService
         br = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
@@ -70,6 +71,7 @@ public class MainActivity extends ActionBarActivity {
                     Log.d("lg", "Receive signal is success");
                     String resievedTitle = intent.getStringExtra(APP_TITLE);
                     String resievedDescription = intent.getStringExtra(APP_DESCRIPTION);
+                    int broadcsrtPos = intent.getIntExtra(BROADCAST_POSITION,-1);
 
                     Log.d("lg", "resievedTitle = " + resievedTitle);
                     Log.d("lg", "resievedDescription = " + resievedDescription);
@@ -81,7 +83,7 @@ public class MainActivity extends ActionBarActivity {
 
                     tvTitle.setText(resievedTitle);
                     tvDescription.setText(resievedDescription);
-                    setDataInList();
+                    setDataInList(broadcsrtPos);
                 } else {
                     Log.d("lg", "Receive signal is fail");
                     Toast.makeText(getApplicationContext(), getString(R.string.no_connection_to_internet), Toast.LENGTH_LONG).show();
@@ -93,15 +95,12 @@ public class MainActivity extends ActionBarActivity {
         // Create intent-filter for BroadcastReceiver
         intFilt = new IntentFilter(BROADCAST_ACTION);
 
-        Log.d("lg", "Register Receiver in onCreate()");
-        registerReceiver(br, intFilt);
-
         //Check cached data
         //Feeds in DB
         Cursor cursor = getContentResolver().query(RSSContentProvider.CONTENT_URI, null, null, null, null);
         if (cursor.getCount() > 0) {
             Log.d("lg", "Set cached data");
-            setDataInList();
+            setDataInList(-1);
         }
         cursor.close();
         //Title and description in SharedPreference
@@ -115,26 +114,31 @@ public class MainActivity extends ActionBarActivity {
         rv.scrollToPosition(mSettings.getInt(APP_LAST_POSITION, 0));
 
         //Start downloading and updating data
-        renewData();
+        renewData(-1);
     }
 
-    private void renewData() {
+    private void renewData(int broadcastPos) {
         //Start service for download RSS data
         Intent intent;
-        intent = new Intent(this, RSSNetworkService.class);
+        intent = new Intent(this, RSSNetworkIntentService.class);
         intent.putExtra(SECTION_URL, mSettings.getString(SECTION_URL, RSSsections.all.getRSSsectionUrl()));
+        if (broadcastPos >= 0) {
+            intent.putExtra(BROADCAST_POSITION, broadcastPos);
+        }
         startService(intent);
         tvDescription.setText(R.string.load_data);
     }
 
-    private void setDataInList() {
-        int positionInRV = 0;
+    private void setDataInList(int broadcastPos) {
+        int positionInRV = broadcastPos;
 
-        //save position
-        LinearLayoutManager manager = (LinearLayoutManager) rv.getLayoutManager();
-        positionInRV = manager.findFirstVisibleItemPosition();
         if (positionInRV < 0) {
-            positionInRV = 0;
+            //save position
+            LinearLayoutManager manager = (LinearLayoutManager) rv.getLayoutManager();
+            positionInRV = manager.findFirstVisibleItemPosition();
+            if (positionInRV < 0) {
+                positionInRV = 0;
+            }
         }
 
         Cursor cursor = getContentResolver().query(RSSContentProvider.CONTENT_URI, null, null, null, null);
@@ -153,17 +157,24 @@ public class MainActivity extends ActionBarActivity {
     }
 
     @Override
+    protected void onStart() {
+        super.onStart();
+        Log.d("lg", "Register Receiver");
+        registerReceiver(br, intFilt);
+    }
+
+    @Override
     protected void onDestroy() {
         super.onDestroy();
-
-        Log.d("lg", "Unegister Receiver in onDestroy()");
-        //When low memory, OS can skip onPause() and onStop(). Need unredistering reciever.
-        unregisterReceiver(br);
+        //When low memory, OS can skip onPause() and onStop().
     }
 
     @Override
     protected void onStop() {
         super.onStop();
+
+        Log.d("lg", "Unegister Receiver in onDestroy()");
+        unregisterReceiver(br);
 
         //Save position (need do it in onDestroy() but.. in there not working)
         int positionInRV = 0;
@@ -189,7 +200,7 @@ public class MainActivity extends ActionBarActivity {
         SharedPreferences.Editor editor = mSettings.edit();
         editor.putString(SECTION_URL, url);
         editor.apply();
-        renewData();
+        renewData(0);
     }
 
     @Override
