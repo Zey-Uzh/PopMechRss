@@ -17,10 +17,13 @@ import android.view.MenuItem;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.util.logging.Handler;
+import java.util.logging.LogRecord;
+
 
 public class MainActivity extends ActionBarActivity {
 
-    static final String APP_PREFERENCES = "settings";
+    static final String APP_PREFERENCES = "ru.zeyuzh.testrssreader_preferences";
     static final String APP_TITLE = "title";
     static final String APP_DESCRIPTION = "description";
     static final String APP_LAST_POSITION = "last_position";
@@ -46,6 +49,10 @@ public class MainActivity extends ActionBarActivity {
         setContentView(R.layout.activity_main);
 
         mSettings = getSharedPreferences(APP_PREFERENCES, Context.MODE_PRIVATE);
+
+        if(mSettings.contains("notif")){
+            Log.d("lg", "mSettings.contains notif");
+        }
 
         rv = (RecyclerView) findViewById(R.id.recyclerView);
         tvTitle = (TextView) findViewById(R.id.tvTitle);
@@ -164,12 +171,6 @@ public class MainActivity extends ActionBarActivity {
     }
 
     @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        //When low memory, OS can skip onPause() and onStop().
-    }
-
-    @Override
     protected void onStop() {
         super.onStop();
 
@@ -208,6 +209,10 @@ public class MainActivity extends ActionBarActivity {
 
         int id = item.getItemId();
         switch (id) {
+            case (R.id.action_settings):{
+                startActivity(new Intent(this,SettingsPopMech.class));
+                return true;
+            }
             case (R.id.sub_menu_all): {
                 setNewSection(RSSsections.all.getRSSsectionUrl());
                 return true;

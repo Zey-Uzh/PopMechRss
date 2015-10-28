@@ -27,4 +27,51 @@
     <string name="section_adrenalin">Адреналин</string>
     <string name="section_diy">Сделай сам</string>
     <string name="section_design">Дизайн</string>
+
+    <string-array name="entries">
+        <item>Все рублики</item>
+        <item>Наука</item>
+        <item>Оружие</item>
+        <item>Технологии</item>
+        <item>Автомобили</item>
+        <item>Гаджеты</item>
+        <item>Популярный лекторий</item>
+        <item>Реклама</item>
+        <item>Бизнес-новости</item>
+        <item>Редакция</item>
+        <item>История</item>
+        <item>Сделано в России</item>
+        <item>Адреналин</item>
+        <item>Сделай сам</item>
+        <item>Дизайн</item>
+    </string-array>
+    <string-array name="entry_values">
+        <item>section_all</item>
+        <item>section_science</item>
+        <item>section_weapon</item>
+        <item>section_technologies</item>
+        <item>section_vehicles</item>
+        <item>section_gadgets</item>
+        <item>section_lectures_popular</item>
+        <item>section_commercial</item>
+        <item>section_business_news</item>
+        <item>section_editorial</item>
+        <item>section_history</item>
+        <item>section_made_in_russia</item>
+        <item>section_adrenalin</item>
+        <item>section_diy</item>
+        <item>section_design</item>
+    </string-array>
+
+
+
+    <string name="settings">Настройки</string>
+    <string name="pref_notif_on_loading">Уведомление при загрузке</string>
+    <string name="pref_notif_on_loading_summary">Позволяет отображать уведомление в строке состояния при загрузке новостей.</string>
+
+    <string name="loading_rss">Загрузка новостей</string>
+    <string name="loading_rss_summary">Загрузка новых данных в PopMechRss</string>
+    <string name="pref_section_blacklist">Игнорируемые разделы</string>
+    <string name="pref_section_blacklist_summary">Выделенные в данном списке разделы не будут отображаться в меню выбора разделов.</string>
+
 </resources>

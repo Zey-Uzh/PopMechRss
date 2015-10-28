@@ -18,12 +18,18 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity
+            android:name=".SettingsPopMech"
+            android:label="@string/settings">
+        </activity>
         <provider
             android:name=".RSSContentProvider"
             android:authorities="ru.zeyuzh.providers.RSSfeed"
-            android:enabled="true" />
+            android:enabled="true"
+            android:exported="false"/>
         <service
-            android:name=".RSSNetworkIntentService" />
+            android:name=".RSSNetworkIntentService"
+            android:exported="false"/>
     </application>
 
 </manifest>

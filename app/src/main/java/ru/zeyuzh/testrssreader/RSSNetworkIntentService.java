@@ -2,12 +2,14 @@ package ru.zeyuzh.testrssreader;
 
 
 import android.app.IntentService;
-import android.app.Service;
+import android.app.Notification;
+import android.app.NotificationManager;
 import android.content.ContentValues;
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.net.Uri;
-import android.os.IBinder;
 import android.util.Log;
 
 import org.apache.http.HttpEntity;
@@ -25,19 +27,23 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Stack;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
 public class RSSNetworkIntentService extends IntentService {
-    private String feedAddress = "http://www.popmech.ru/out/public-all.xml";
-    private int broadcastPos;
 
     List<RSSMessage> entries = new ArrayList<RSSMessage>();
     String title = "";
     String description = "";
     String link = "";
+
+    NotificationManager nm;
+    final int NOTIF_ID = 42;
+
+    private SharedPreferences mSettings;
 
     public RSSNetworkIntentService() {
         super("RSSNetworkIntentService");
@@ -45,49 +51,75 @@ public class RSSNetworkIntentService extends IntentService {
 
     @Override
     protected void onHandleIntent(Intent intent) {
+        String feedAddress;
+        int broadcastPos;
+
+        mSettings = getSharedPreferences(MainActivity.APP_PREFERENCES, Context.MODE_PRIVATE);
+        nm = (NotificationManager) getSystemService(this.NOTIFICATION_SERVICE);
+        if (mSettings.getBoolean("notif", false)) {
+            sendNotif();
+        }
+
         feedAddress = intent.getExtras().getString(MainActivity.SECTION_URL);
-        broadcastPos = intent.getIntExtra(MainActivity.BROADCAST_POSITION,-1);
+        broadcastPos = intent.getIntExtra(MainActivity.BROADCAST_POSITION, -1);
         String url = feedAddress;
         InputStream is;
 
-            try {
-                DefaultHttpClient httpClient = new DefaultHttpClient();
-                Log.d("lg", "Try HTTP request = " + url);
-                HttpGet httpGet = new HttpGet(url);
+        try {
+            DefaultHttpClient httpClient = new DefaultHttpClient();
+            Log.d("lg", "Try HTTP request = " + url);
+            HttpGet httpGet = new HttpGet(url);
 
-                HttpResponse httpResponse = httpClient.execute(httpGet);
-                HttpEntity httpEntity = httpResponse.getEntity();
-                is = httpEntity.getContent();
-                Log.d("lg", "Success HTTP request");
-                //Log.d("lg", "Input stream after GET request = " + Utils.convertStreamToString(is));
+            HttpResponse httpResponse = httpClient.execute(httpGet);
+            HttpEntity httpEntity = httpResponse.getEntity();
+            is = httpEntity.getContent();
+            Log.d("lg", "Success HTTP request");
+            //Log.d("lg", "Input stream after GET request = " + Utils.convertStreamToString(is));
 
-                if (xmlParse(is)) {
-                    Log.d("lg", "Success parsing");
-                }
-
-                is.close();
-
-                //send broadcast to MainActivity
-                Intent intentOut = new Intent(MainActivity.BROADCAST_ACTION);
-                intentOut.putExtra(MainActivity.STATUS_RECEIVE, true);
-                intentOut.putExtra(MainActivity.APP_TITLE, title);
-                intentOut.putExtra(MainActivity.APP_DESCRIPTION, description);
-                intentOut.putExtra(MainActivity.BROADCAST_POSITION,broadcastPos);
-                sendBroadcast(intentOut);
-
-            } catch (ClientProtocolException e) {
-                taskfailed();
-                e.printStackTrace();
-            } catch (IOException e) {
-                taskfailed();
-                e.printStackTrace();
+            if (xmlParse(is)) {
+                Log.d("lg", "Success parsing");
             }
+
+            is.close();
+
+            //send broadcast to MainActivity
+            Intent intentOut = new Intent(MainActivity.BROADCAST_ACTION);
+            intentOut.putExtra(MainActivity.STATUS_RECEIVE, true);
+            intentOut.putExtra(MainActivity.APP_TITLE, title);
+            intentOut.putExtra(MainActivity.APP_DESCRIPTION, description);
+            intentOut.putExtra(MainActivity.BROADCAST_POSITION, broadcastPos);
+            sendBroadcast(intentOut);
+
+            Log.d("lg", "Remove notification");
+            nm.cancel(NOTIF_ID);
+
+        } catch (ClientProtocolException e) {
+            taskfailed();
+            e.printStackTrace();
+        } catch (IOException e) {
+            taskfailed();
+            e.printStackTrace();
+        }
     }
 
     private void taskfailed() {
         Intent intentOut = new Intent(MainActivity.BROADCAST_ACTION);
         intentOut.putExtra(MainActivity.STATUS_RECEIVE, false);
         sendBroadcast(intentOut);
+
+        Log.d("lg", "Remove notification");
+        nm.cancel(NOTIF_ID);
+    }
+
+    void sendNotif() {
+        Log.d("lg", "Send notification");
+        Notification notif = new Notification(R.drawable.pm, getString(R.string.loading_rss), System.currentTimeMillis());
+        //Intent intent = new Intent(this, MainActivity.class);
+        //PendingIntent pIntent = PendingIntent.getActivity(this, 0, intent, 0);
+        //notif.setLatestEventInfo(this, getString(R.string.loading_rss), getString(R.string.loading_rss_summary), pIntent);
+        notif.setLatestEventInfo(this, getString(R.string.loading_rss), getString(R.string.loading_rss_summary), null);
+        notif.flags |= Notification.FLAG_ONGOING_EVENT;
+        nm.notify(NOTIF_ID, notif);
     }
 
     private boolean xmlParse(InputStream is) {
