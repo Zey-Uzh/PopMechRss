@@ -25,3 +25,6 @@ local.properties
 
 # Idea Files
 .idea/workspace.xml
+.idea/
+
+*.iml

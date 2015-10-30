@@ -6,6 +6,7 @@
         android:key="notif">
     </CheckBoxPreference>
     <ListPreference
+        android:enabled="false"
         android:entries="@array/entries"
         android:entryValues="@array/entry_values"
         android:key="sections_black_list"
